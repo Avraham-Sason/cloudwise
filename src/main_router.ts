@@ -3,7 +3,7 @@ import express, { Router } from "express";
 import { get_version } from "akeyless-server-commons/helpers";
 import { MainRouter } from "akeyless-server-commons/types";
 import { verify_user_auth } from "akeyless-server-commons/middlewares";
-import cloudwise_router from "./cloudwise/router";
+import { cloudwise_router } from "./cloudwise";
 const root_router: Router = express.Router();
 const app_router: Router = express.Router();
 
