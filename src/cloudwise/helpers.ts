@@ -126,17 +126,28 @@ export const send_command = async (options: SendCommandOptions): Promise<SendCom
     return data;
 };
 
-export const gey_command_status = async (options: GetCommandStatusOptions): Promise<GetCommandStatusResponse> => {
-    const {} = options || {};
+export const get_command_status = async (options: GetCommandStatusOptions): Promise<GetCommandStatusResponse> => {
+    const { asset_id, ble_id, command_id, device_id } = options || {};
 
-    const data = await cloudwise_request<GetCommandStatusResponse>("getCommandStatus", {});
+    const data = await cloudwise_request<GetCommandStatusResponse>("getCommandStatus", {
+        assetId: asset_id,
+        BleId: ble_id,
+        commandId: command_id,
+        deviceId: device_id,
+    });
 
     return data;
 };
-export const get_user_cdrs = async (options: UserCdrsOptions): Promise<UserCdrsResponse> => {
-    const {} = options || {};
 
-    const data = await cloudwise_request<UserCdrsResponse>("getUserCdrs", {});
+export const get_user_cdrs = async (options: UserCdrsOptions): Promise<UserCdrsResponse["Items"]> => {
+    const { asset_id, limit = 99999999, offset = 0, time_zone = 0 } = options || {};
 
-    return data;
+    const data = await cloudwise_request<UserCdrsResponse>("getUserCdrs", {
+        skip: offset,
+        pageSize: limit,
+        assetId: asset_id,
+        timeZone: time_zone,
+    });
+
+    return data.Items;
 };

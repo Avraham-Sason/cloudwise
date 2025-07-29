@@ -1,4 +1,5 @@
 import { TObject } from "akeyless-types-commons";
+import type { Timestamp } from "firebase-admin/firestore";
 
 /// commons
 export type CloudwiseConfig =
@@ -21,7 +22,7 @@ export interface CloudwiseResponse {
 }
 
 /// helpers
-interface TariffDetails {
+export interface TariffDetails {
     PricePerKwh: number;
     ConnectionFee: number;
     ParkingFee: number | null;
@@ -42,7 +43,7 @@ interface TariffDetails {
     ErrorCode: number;
 }
 
-interface Connector {
+export interface Connector {
     Id: string;
     EvseUid: string;
     Standard: string;
@@ -60,11 +61,13 @@ interface Connector {
     TariffDetails: TariffDetails;
 }
 
-interface Evse {
+type EvseStatus = "AVAILABLE" | "CHARGING" | "BLOCKED";
+
+export interface Evse {
     Uid: string;
     LocationId: string;
     EvseId: string;
-    Status: string;
+    Status: EvseStatus;
     FloorLevel: string | null;
     Latitude: number;
     Longitude: number;
@@ -78,7 +81,7 @@ interface Evse {
     Description: string[];
 }
 
-interface Location {
+export interface Location {
     Id: string;
     OwnerCountryCode: string;
     OwnerPartyId: string;
@@ -95,17 +98,17 @@ interface Location {
     Facilities: string | null;
     OpeningTimes: string;
     ParkingType: string;
-    Images: string;
+    Images: string | null;
     LastUpdated: string;
 }
 
-interface OcpiConnector extends Omit<Connector, "PricePerKwh" | "ConnectionFee" | "ParkingFee" | "TariffDetails"> {}
+export interface OcpiConnector extends Omit<Connector, "PricePerKwh" | "ConnectionFee" | "ParkingFee" | "TariffDetails"> {}
 
-interface OcpiEvse extends Omit<Evse, "Connectors" | "Description" | "Capabilities"> {
+export interface OcpiEvse extends Omit<Evse, "Connectors" | "Description" | "Capabilities"> {
     OcpiConnectors: OcpiConnector[];
 }
 
-interface OcpiLocation extends Location {
+export interface OcpiLocation extends Location {
     PostalCode: string;
     Type: string | null;
     RelatedLocations: string | null;
@@ -163,22 +166,109 @@ export interface SendCommandOptions {
 }
 
 export interface SendCommandResponse extends CloudwiseResponse {
-    /// TODO: add response
+    CommandId: string;
 }
 
 /// get command status
-export interface GetCommandStatusOptions {}
+export interface GetCommandStatusOptions {
+    command_id: string;
+    asset_id: string;
+    ble_id: string;
+    device_id: string;
+}
 
 export interface GetCommandStatusResponse extends CloudwiseResponse {
     CommandStatus: string;
     Status: string;
     KWh: string;
-    StartTime: number;
+    Cost: string;
+    ChargingTimeInSeconds: string;
 }
 
 // user cdrs
-export interface UserCdrsOptions {}
+export interface UserCdrsOptions {
+    asset_id: string;
+    offset?: number;
+    limit?: number;
+    time_zone?: number;
+}
 
+interface OcpiCdr {
+    ocpCountryCode: string;
+    ocpPartyId: string;
+    id: string;
+    startDateTime: string;
+    endDateTime: string;
+    sessionId: string;
+    authMethod: string;
+    authorizationReference: string;
+    currency: string;
+    totalCost: number;
+    totalCostWithVat: number;
+    totalCostExcVat: number;
+    totalFixCost: number;
+    totalFixCostWithVat: number;
+    totalEnergy: number;
+    totalEnergyCost: number;
+    totalEnergyCostWithVat: number;
+    totalTime: number;
+    totalTimeCost: number;
+    totalTimeCostWithVat: number;
+    totalParkingTime: number;
+    totalParkingCost: number;
+    totalParkingCostWithVat: number;
+    totalReservationCost: number;
+    totalReservationCostWithVat: number;
+    cdrTokenCountryCode: string;
+    cdrTokenPartyId: string;
+    cdrTokenUid: string;
+    cdrTokenType: string;
+    cdrTokenContractId: string;
+    invoiceReferenceId: string;
+    creditsBalance: number;
+    creditsExpirationDate: string;
+    credit: boolean;
+    creditReferenceId: string;
+    homeCharging: boolean;
+    lastUpdated: string;
+    avgKwhPrice: number;
+    duration: number;
+}
 export interface UserCdrsResponse extends CloudwiseResponse {
-    /// TODO: add response
+    Items: OcpiCdr[];
+}
+
+/// parsed location helpers
+export interface ParsedConnectorData {
+    id: string;
+    standard: string;
+    format: string;
+    power_type: string;
+    max_voltage: number;
+    max_amperage: number;
+    max_electric_power: number;
+    last_updated: Timestamp;
+    tariff_id: string;
+}
+
+export interface ParsedEvseData {
+    uid: string;
+    status: EvseStatus;
+    floor_level: string | null;
+    physical_reference: string | null;
+    last_updated: Timestamp;
+    connectors: ParsedConnectorData[];
+}
+
+export interface ParsedLocationData {
+    name: string;
+    id: string;
+    country: string;
+    address: string;
+    company_name: string;
+    party_id: string;
+    lat: number;
+    lng: number;
+    image?: string | null;
+    stations: ParsedEvseData[];
 }
