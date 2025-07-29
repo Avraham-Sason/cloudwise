@@ -2,11 +2,13 @@ import { Router } from "express";
 import { get_location_status } from "./services";
 import { nx_user_login } from "akeyless-server-commons/middlewares";
 import package_json from "../../package.json";
+
 const router: Router = Router();
 
 router.get("/", (req, res) => {
     res.send(process.env.mode === "qa" ? "hello from cloudwise QA" : "hello from cloudwise PROD");
 });
+
 router.get("/v", (req, res) => {
     res.send(`${package_json.version} --${process.env.mode === "qa" ? "QA" : "PROD"}`);
 });

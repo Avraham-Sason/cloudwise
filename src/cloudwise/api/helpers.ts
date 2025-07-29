@@ -1,7 +1,6 @@
 import { cache_manager, logger } from "akeyless-server-commons/managers";
 import axios from "axios";
 
-import { parse_location, parse_ocpi_location } from "../helpers";
 import {
     CloudwiseConfig,
     GetLocationsOptions,
