@@ -83,7 +83,7 @@ export interface ParsedConnectorData {
 export type OcpiConnector = Omit<Connector, "PricePerKwh" | "ConnectionFee" | "ParkingFee" | "TariffDetails">;
 
 /// evse types
-export type EvseStatus = "AVAILABLE" | "CHARGING" | "BLOCKED";
+export type EvseStatus = "AVAILABLE" | "CHARGING" | "BLOCKED" | "INOPERATIVE";
 
 export interface Evse {
     Uid: string;
