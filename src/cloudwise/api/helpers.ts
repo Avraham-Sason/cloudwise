@@ -1,12 +1,14 @@
 import { cache_manager, logger } from "akeyless-server-commons/managers";
 import axios from "axios";
+
+import { parse_location, parse_ocpi_location } from "../helpers";
 import {
     CloudwiseConfig,
     GetLocationsOptions,
-    GetLocationDetailsOptions,
-    SendCommandOptions,
-    GetLocationDetailsResponse,
     GetLocationsResponse,
+    GetLocationDetailsOptions,
+    GetLocationDetailsResponse,
+    SendCommandOptions,
     SendCommandResponse,
     GetCommandStatusOptions,
     GetCommandStatusResponse,
@@ -77,16 +79,15 @@ export const get_locations = async (options?: GetLocationsOptions): Promise<GetL
 
 export const get_location_details = async (
     locationId: string | number,
-    options?: GetLocationDetailsOptions
+    options: GetLocationDetailsOptions
 ): Promise<GetLocationDetailsResponse["Location"]> => {
-    const { party_id, country_code = "IL" } = options || {};
+    const { party_id, country_code = "IL" } = options;
 
     const { Location } = await cloudwise_request<GetLocationDetailsResponse>("getLocationDetails", {
         LocationId: locationId,
         PartyID: party_id,
         CountryCode: country_code,
     });
-
     return Location;
 };
 
