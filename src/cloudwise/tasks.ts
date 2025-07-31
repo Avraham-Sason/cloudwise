@@ -1,19 +1,25 @@
 import { db, execute_task, TaskName } from "akeyless-server-commons/helpers";
-import { parse_ocpi_location } from "./helpers";
+import { parse_cdr, parse_ocpi_location } from "./helpers";
 import { ParsedOcpiLocationData } from "./types";
 import { cache_manager, logger } from "akeyless-server-commons/managers";
 import { isEqual } from "lodash";
-import { get_locations, login } from "./api/helpers";
+import { get_config, get_locations, get_user_cdrs, login } from "./api/helpers";
+import { ChargingSession } from "./sessions/types";
 
-export const run_collect_cloudwise_locations = async () => {
+export const run_tasks = async () => {
+    /// login
+    setInterval(login, 2 * 60 * 60 * 1000);
+
+    /// collect locations
     await execute_task("cloudwise", TaskName.collect_cloudwise_locations, task__collect_cloudwise_locations);
     setInterval(() => {
         execute_task("cloudwise", TaskName.collect_cloudwise_locations, task__collect_cloudwise_locations);
     }, 30 * 60 * 1000);
-};
-export const run_login = async () => {
-    await login();
-    setInterval(login, 2 * 60 * 60 * 1000);
+
+    /// collect cdrs
+    setInterval(() => {
+        execute_task("cloudwise", TaskName.collect_cloudwise_cdrs, task__collect_cloudwise_cdrs);
+    }, 60 * 60 * 1000);
 };
 
 export const task__collect_cloudwise_locations = async () => {
@@ -36,5 +42,25 @@ export const task__collect_cloudwise_locations = async () => {
         });
         await batch.commit();
         logger.log(`Updated ${need_to_update.length} locations`);
+    }
+};
+
+export const task__collect_cloudwise_cdrs = async () => {
+    const { asset_id } = get_config();
+    const cdrs = await get_user_cdrs({ asset_id });
+    const parsed_cdrs = cdrs.map(parse_cdr);
+    const cached_sessions: ChargingSession[] = cache_manager.getArrayData("cloudwise-sessions").filter((session: ChargingSession) => {
+        return session.status === "completed" && !session.cdr_id;
+    });
+    if (cached_sessions.length) {
+        const batch = db.batch();
+        cached_sessions.forEach((session) => {
+            const cdr = parsed_cdrs.find((cdr) => cdr.session_id === session.id);
+            if (cdr) {
+                batch.set(db.collection("cloudwise-sessions").doc(session.id), { ...session, cdr_id: cdr.id });
+                batch.set(db.collection("cloudwise-cdrs").doc(cdr.id), { ...cdr, car_number: session.car_number, timestamp: session.timestamp });
+            }
+        });
+        await batch.commit();
     }
 };

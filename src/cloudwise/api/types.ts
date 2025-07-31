@@ -1,5 +1,6 @@
 import { TObject } from "akeyless-types-commons";
-import { Evse, Location, OcpiLocation } from "../types";
+import { CdrItem, Evse, Location, OcpiLocation } from "../types";
+import { CommandStatus } from "../sessions/types";
 
 export type CloudwiseConfig =
     | {
@@ -8,6 +9,9 @@ export type CloudwiseConfig =
           password: string;
           login_key: string;
           token: string;
+          device_id: string;
+          ble_id: string;
+          asset_id: string;
       }
     | TObject<string>;
 
@@ -49,18 +53,19 @@ export interface GetLocationDetailsResponse extends CloudwiseResponse {
     };
 }
 
+export type SessionCommand = "START_SESSION" | "STOP_SESSION";
 /// send command
 export interface SendCommandOptions {
-    command: "START_SESSION" | "STOP_SESSION";
+    command?: SessionCommand;
     location_id: string;
     party_id: string;
-    evse_uid: string;
+    station_uid: string;
     connector_id: string;
     ble_id: string;
     device_id: string;
     asset_id: string;
     ignore_distance_check?: boolean;
-    command_id?: string;
+    session_id?: string;
     lat?: number;
     lng?: number;
     country_code?: string;
@@ -71,19 +76,22 @@ export interface SendCommandResponse extends CloudwiseResponse {
 }
 
 /// get command status
-export interface GetCommandStatusOptions {
-    command_id: string;
+export interface GetSessionStatusOptions {
+    session_id: string;
     asset_id: string;
     ble_id: string;
     device_id: string;
 }
 
 export interface GetCommandStatusResponse extends CloudwiseResponse {
-    CommandStatus: string;
+    CommandStatus: CommandStatus;
     Status: string;
+    ChargingTimeInSeconds: string;
+    CommandId?: string;
+    SessionId?: string;
     KWh: string;
     Cost: string;
-    ChargingTimeInSeconds: string;
+    Cdr?: CdrItem;
 }
 
 // user cdrs
@@ -94,48 +102,6 @@ export interface UserCdrsOptions {
     time_zone?: number;
 }
 
-interface OcpiCdr {
-    ocpCountryCode: string;
-    ocpPartyId: string;
-    id: string;
-    startDateTime: string;
-    endDateTime: string;
-    sessionId: string;
-    authMethod: string;
-    authorizationReference: string;
-    currency: string;
-    totalCost: number;
-    totalCostWithVat: number;
-    totalCostExcVat: number;
-    totalFixCost: number;
-    totalFixCostWithVat: number;
-    totalEnergy: number;
-    totalEnergyCost: number;
-    totalEnergyCostWithVat: number;
-    totalTime: number;
-    totalTimeCost: number;
-    totalTimeCostWithVat: number;
-    totalParkingTime: number;
-    totalParkingCost: number;
-    totalParkingCostWithVat: number;
-    totalReservationCost: number;
-    totalReservationCostWithVat: number;
-    cdrTokenCountryCode: string;
-    cdrTokenPartyId: string;
-    cdrTokenUid: string;
-    cdrTokenType: string;
-    cdrTokenContractId: string;
-    invoiceReferenceId: string;
-    creditsBalance: number;
-    creditsExpirationDate: string;
-    credit: boolean;
-    creditReferenceId: string;
-    homeCharging: boolean;
-    lastUpdated: string;
-    avgKwhPrice: number;
-    duration: number;
-}
-
 export interface UserCdrsResponse extends CloudwiseResponse {
-    Items: OcpiCdr[];
+    Items: CdrItem[];
 }

@@ -9,7 +9,7 @@ import {
     GetLocationDetailsResponse,
     SendCommandOptions,
     SendCommandResponse,
-    GetCommandStatusOptions,
+    GetSessionStatusOptions,
     GetCommandStatusResponse,
     UserCdrsOptions,
     UserCdrsResponse,
@@ -19,7 +19,7 @@ const get_token = (): string => {
     return cache_manager.getObjectData("cloudwise-token", {}).value || "";
 };
 
-const get_config = (): CloudwiseConfig => {
+export const get_config = (): CloudwiseConfig => {
     const config = cache_manager.getObjectData("nx-settings", {}).cloudwise || {};
     config.token = get_token();
     if (config.id) {
@@ -36,9 +36,9 @@ export const cloudwise_request = async <T = any>(endpoint: string, payload: Reco
         ...payload,
     });
     const data = response.data || {};
-    const { ErrorMessage } = data;
-    if (ErrorMessage) {
-        throw new Error(ErrorMessage);
+    const { ErrorCode } = data;
+    if (ErrorCode && ErrorCode > 0) {
+        throw new Error(data);
     }
 
     return data as T;
@@ -94,13 +94,13 @@ export const send_command = async (options: SendCommandOptions): Promise<SendCom
     const {
         location_id,
         party_id,
-        command,
-        evse_uid,
+        command = "START_SESSION",
+        station_uid: evse_uid,
         connector_id,
         ble_id,
         device_id,
         asset_id,
-        command_id,
+        session_id,
         ignore_distance_check = false,
         country_code = "IL",
         lat = 0.0,
@@ -112,7 +112,7 @@ export const send_command = async (options: SendCommandOptions): Promise<SendCom
         LocationId: location_id,
         PartyID: party_id,
         CountryCode: country_code,
-        commandId: command_id,
+        commandId: session_id,
         evseUid: evse_uid,
         connectorId: connector_id,
         ignoreDistanceCheck: ignore_distance_check,
@@ -126,13 +126,13 @@ export const send_command = async (options: SendCommandOptions): Promise<SendCom
     return data;
 };
 
-export const get_command_status = async (options: GetCommandStatusOptions): Promise<GetCommandStatusResponse> => {
-    const { asset_id, ble_id, command_id, device_id } = options || {};
+export const get_session_status = async (options: GetSessionStatusOptions): Promise<GetCommandStatusResponse> => {
+    const { asset_id, ble_id, session_id, device_id } = options || {};
 
     const data = await cloudwise_request<GetCommandStatusResponse>("getCommandStatus", {
         assetId: asset_id,
         BleId: ble_id,
-        commandId: command_id,
+        commandId: session_id,
         deviceId: device_id,
     });
 

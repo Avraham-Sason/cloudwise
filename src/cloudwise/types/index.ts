@@ -1,6 +1,6 @@
 import type { Timestamp } from "firebase-admin/firestore";
 
-/// tariff types
+/// ------------------------------ tariff types ------------------------------
 export interface TariffItem {
     Text: string | null;
     Currency: string;
@@ -45,7 +45,7 @@ export interface ParsedTariffDetails {
     tariff_items: ParsedTariffItem[];
 }
 
-/// connector types
+/// ------------------------------ connector types ------------------------------
 export interface Connector {
     Id: string;
     EvseUid: string;
@@ -82,7 +82,7 @@ export interface ParsedConnectorData {
 
 export type OcpiConnector = Omit<Connector, "PricePerKwh" | "ConnectionFee" | "ParkingFee" | "TariffDetails">;
 
-/// evse types
+/// ------------------------------ evse types ------------------------------
 export type EvseStatus = "AVAILABLE" | "CHARGING" | "BLOCKED" | "INOPERATIVE";
 
 export interface Evse {
@@ -116,7 +116,7 @@ export interface OcpiEvse extends Omit<Evse, "Connectors" | "Description" | "Cap
     OcpiConnectors: OcpiConnector[];
 }
 
-/// location types
+/// ------------------------------ location types ------------------------------
 export interface Location {
     Id: string;
     OwnerCountryCode: string;
@@ -163,4 +163,71 @@ export interface ParsedOcpiLocationData extends ParsedLocationData {
     company_name: string;
     party_id: string;
     stations: ParsedEvseData[];
+}
+
+// ------------------------------ CDR types ------------------------------
+export interface CdrItem {
+    OcpCountryCode: string;
+    OcpPartyId: string;
+    Id: string;
+    StartDateTime: string; 
+    EndDateTime: string;  
+    SessionId: string;
+    AuthMethod: string | null;
+    AuthorizationReference: string | null;
+    Currency: string;
+    TotalCost: number;
+    TotalCostWithVat: number;
+    TotalCostExcVat: number | null;
+    TotalFixCost: number;
+    TotalFixCostWithVat: number;
+    TotalEnergy: number;
+    TotalEnergyCost: number;
+    TotalEnergyCostWithVat: number;
+    TotalTime: number;
+    TotalTimeCost: number | null;
+    TotalTimeCostWithVat: number | null;
+    TotalParkingTime: number | null;
+    TotalParkingCost: number | null;
+    TotalParkingCostWithVat: number | null;
+    TotalReservationCost: number | null;
+    TotalReservationCostWithVat: number | null;
+    CdrTokenCountryCode: string;
+    CdrTokenPartyId: string;
+    CdrTokenUid: string | null;
+    CdrTokenType: string | null;
+    CdrTokenContractId: string | null;
+    InvoiceReferenceId: string | null;
+    CreditsBalance: number | null;
+    CreditsExpirationDate: string | null;
+    Credit: boolean;
+    CreditReferenceId: string | null;
+    HomeCharging: boolean;
+    LastUpdated: string; 
+    AvgKwhPrice: number;
+    Duration: string; // Format HH:mm:ss
+}
+export interface ParsedCdrItem {
+    id: string;
+    party_id: string;
+    start_date_time: Timestamp;
+    end_date_time: Timestamp;
+    last_updated: Timestamp;
+    session_id: string;
+    currency: string;
+    total_cost: number;
+    total_cost_with_vat: number;
+    total_fix_cost: number;
+    total_fix_cost_with_vat: number;
+    total_energy: number;
+    total_time: number;
+    total_parking_time: number | null;
+    credit: boolean;
+    credits_balance: number;
+    credits_expiration_date: Timestamp | null;
+    home_charging: boolean;
+    avg_kwh_price: number;
+    duration: string; // Format HH:mm:ss
+    car_number?: string;
+    timestamp?: Timestamp;
 }

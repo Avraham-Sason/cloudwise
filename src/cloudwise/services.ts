@@ -4,6 +4,7 @@ import { json_failed, json_ok } from "akeyless-server-commons/helpers";
 import { parse_eves, parse_location } from "./helpers";
 import { cache_manager } from "akeyless-server-commons/managers";
 import { ParsedOcpiLocationData } from "./types";
+import { stop_session as stop_session_helper } from "./sessions/helpers";
 
 export const get_location_status: Service = async (req, res) => {
     try {
@@ -16,6 +17,16 @@ export const get_location_status: Service = async (req, res) => {
         const parsed_location = parse_location(location_details.Location);
         const parsed_evses = location_details.Evses.map(parse_eves);
         res.json(json_ok({ ...parsed_location, stations: parsed_evses }));
+    } catch (error) {
+        res.json(json_failed(error));
+    }
+};
+
+export const stop_session: Service = async (req, res) => {
+    try {
+        const { session_id } = req.body;
+        await stop_session_helper(session_id);
+        res.json(json_ok({ message: "Session stopped" }));
     } catch (error) {
         res.json(json_failed(error));
     }

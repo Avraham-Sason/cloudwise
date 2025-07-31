@@ -1,10 +1,12 @@
 import {
+    CdrItem,
     Connector,
     Evse,
     Location,
     OcpiConnector,
     OcpiEvse,
     OcpiLocation,
+    ParsedCdrItem,
     ParsedConnectorData,
     ParsedEvseData,
     ParsedLocationData,
@@ -151,5 +153,58 @@ const parse_tariff_item = (tariff_item: TariffItem): ParsedTariffItem => {
         from: Timestamp.fromDate(new Date(from)),
         to: Timestamp.fromDate(new Date(to)),
     };
+    return res;
+};
+
+export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
+    const {
+        OcpPartyId: party_id,
+        Id: id,
+        StartDateTime: start_date_time,
+        EndDateTime: end_date_time,
+        LastUpdated: last_updated,
+        SessionId: session_id,
+        Currency: currency,
+        TotalCost: total_cost,
+        TotalCostWithVat: total_cost_with_vat,
+        TotalFixCost: total_fix_cost,
+        TotalFixCostWithVat: total_fix_cost_with_vat,
+        TotalEnergy: total_energy,
+        TotalTime: total_time,
+        TotalParkingTime: total_parking_time,
+        Credit: credit,
+        CreditsBalance: credits_balance,
+        CreditsExpirationDate: credits_expiration_date,
+        HomeCharging: home_charging,
+        AvgKwhPrice: avg_kwh_price,
+        Duration: duration,
+    } = cdr;
+
+    const res: ParsedCdrItem = {
+        id,
+        party_id,
+        start_date_time: Timestamp.fromDate(new Date(start_date_time)),
+        end_date_time: Timestamp.fromDate(new Date(end_date_time)),
+        last_updated: Timestamp.fromDate(new Date(last_updated)),
+        session_id,
+        currency,
+        total_cost,
+        total_cost_with_vat,
+        total_fix_cost,
+        total_fix_cost_with_vat,
+        total_energy,
+        total_time,
+        total_parking_time,
+        credit,
+        credits_balance: credits_balance ?? 0,
+        credits_expiration_date: null,
+        home_charging,
+        avg_kwh_price,
+        duration,
+    };
+    if (credits_expiration_date) {
+        res.credits_expiration_date = Timestamp.fromDate(new Date(credits_expiration_date));
+    }
+
     return res;
 };

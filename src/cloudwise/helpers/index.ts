@@ -1,14 +1,22 @@
 import { snapshot, snapshot_bulk_by_names } from "akeyless-server-commons/helpers";
-import { parse_charging_add_edit } from "./sessions";
+import { handle_charging_state_add_and_edit } from "../sessions/helpers";
+import { cache_manager } from "akeyless-server-commons/managers";
 
 export * from "./parsers";
-export * from "./sessions";
 
 export const initialize_snapshot = async () => {
-    await snapshot_bulk_by_names(["cloudwise-locations"]);
+    await snapshot_bulk_by_names(["cloudwise-locations", "cloudwise-cdrs", "cloudwise-sessions"]);
     await snapshot({
         collection_name: "cloudwise-charging-state",
-        on_add: parse_charging_add_edit,
-        on_modify: parse_charging_add_edit,
+        on_first_time: (docs) => {
+            cache_manager.setArrayData("cloudwise-charging-state", docs);
+        },
+        on_add: handle_charging_state_add_and_edit,
+        on_modify: handle_charging_state_add_and_edit,
+        on_remove: (docs) => {
+            const prev = cache_manager.getArrayData("cloudwise-charging-state");
+            const new_cars = prev.filter((car) => !docs.some((doc) => doc.id === car.id));
+            cache_manager.setArrayData("cloudwise-charging-state", new_cars);
+        },
     });
 };
