@@ -146,11 +146,12 @@ const get_start_session_command_options = async (charging_state_object: Charging
 // TODO: remove interval after testing
 export const start_session = async (charging_state_object: ChargingState) => {
     const { car_number } = charging_state_object;
+    logger.log(`🟡 Starting session for car: "${car_number}" ...`);
     try {
         const command_options = await get_start_session_command_options(charging_state_object);
         const start_session_response = await send_command(command_options);
-        logger.log("Start session response", start_session_response);
         const { CommandId: session_id } = start_session_response;
+        logger.log(`🟢 Session "${session_id}" started for car: "${car_number}"`);
         if (!session_id) {
             throw new Error("Session id not found in start session response");
         }
@@ -172,19 +173,20 @@ export const start_session = async (charging_state_object: ChargingState) => {
         });
 
         // TODO: remove interval after testing
-        setInterval(async () => {
-            const { asset_id, ble_id, device_id } = get_config();
-            const res = await get_session_status({ asset_id, ble_id, session_id, device_id });
-            console.log("get_session_status", res);
-        }, 5 * 1000);
+        // setInterval(async () => {
+        //     const { asset_id, ble_id, device_id } = get_config();
+        //     const res = await get_session_status({ asset_id, ble_id, session_id, device_id });
+        //     console.log("get_session_status", res);
+        // }, 5 * 1000);
     } catch (error) {
-        logger.error("error in send_command_helper", error);
+        logger.error("🔴 Error in send_command_helper", error);
         await set_document("cloudwise-charging-state", car_number, { ...charging_state_object, status: "error", timestamp: Timestamp.now() });
     }
 };
 
 /// ------------------ end session ------------------
 export const stop_session = async (session_id: string) => {
+    logger.log(`🟡 Stopping session: "${session_id}" ...`);
     try {
         const sessions: ChargingSession[] = cache_manager.getArrayData("cloudwise-sessions");
         const session = sessions.find((session) => session.id === session_id);
@@ -200,8 +202,8 @@ export const stop_session = async (session_id: string) => {
         delete config.status;
         delete config.car_number;
         delete config.id;
-        const stop_session = await send_command(config);
-        logger.log("Stop session result", stop_session);
+        await send_command(config);
+        logger.log(`🔵 Session "${session_id}" stopped`);
 
         /// update session status
         await set_document("cloudwise-sessions", session_id, {
@@ -217,9 +219,9 @@ export const stop_session = async (session_id: string) => {
             const { asset_id, ble_id, device_id } = get_config();
             const {
                 CommandStatus: session_status,
-                Cost: cost,
-                Count: count,
-                KWh: kwh,
+                Cost: cost = 0,
+                Count: count = 0,
+                KWh: kwh = 0,
                 ChargingTimeInSeconds: charging_time_in_seconds,
                 Cdr: cdr,
             } = await get_session_status({ asset_id, ble_id, session_id, device_id });
@@ -237,9 +239,9 @@ export const stop_session = async (session_id: string) => {
                 }
                 await set_document("cloudwise-sessions", session_id, update);
             }
-        }, 60 * 1000);
+        }, 30 * 1000);
     } catch (error) {
-        logger.error("error in end session", error);
+        logger.error(`🔴 Error in stop session: ${session_id}`, error);
     }
 };
 
@@ -259,7 +261,7 @@ export const handle_active_session = async (session_id: string) => {
                 }
             }
         } catch (error) {
-            logger.error("error in check_station_status_timer run", error);
+            logger.error("🔴 Error in handle_active_session", error);
             if (timer) {
                 clearTimeout(timer);
             }
@@ -286,7 +288,8 @@ const handle_status_change = async (charging_state_object: ChargingState) => {
             break;
         case "plugout":
         case "error":
-            if (charging_state_object.session_id) {
+            if (charging_state_object.session_id?.length) {
+                logger.warn(`🔴 Stopping session from status snapshot ...  `);
                 await stop_session(charging_state_object.session_id);
             }
             break;
