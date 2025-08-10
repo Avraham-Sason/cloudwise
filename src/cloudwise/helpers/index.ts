@@ -20,3 +20,9 @@ export const initialize_snapshot = async () => {
         },
     });
 };
+
+export const get_cdrs = (car_number: string, options?: { limit?: number; offset?: number }) => {
+    const { limit = 100, offset = 0 } = options || {};
+    const cdrs = cache_manager.getArrayData("cloudwise-cdrs");
+    return cdrs.filter((cdr) => cdr.car_number === car_number).slice(offset, offset + limit);
+};

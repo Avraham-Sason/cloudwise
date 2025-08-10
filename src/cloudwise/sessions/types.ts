@@ -1,4 +1,4 @@
-import { SendCommandOptions } from "../api/types";
+import { SessionCommandSettings } from "../api/types";
 import { EvseStatus, ParsedConnectorData, ParsedEvseData, ParsedOcpiLocationData } from "../types";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -37,8 +37,8 @@ export interface ClosestUpdatedLocationResult {
     connector: ParsedConnectorData;
 }
 
-export interface ChargingSession extends Omit<SendCommandOptions, "command"> {
-    id: string;
+export interface ChargingSession extends Omit<SessionCommandSettings, "command"> {
+    id?: string;
     car_number: string;
     timestamp: Timestamp;
     start_timestamp: Timestamp;

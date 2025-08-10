@@ -84,6 +84,44 @@ export const parse_ocpi_eves = (evse: OcpiEvse): ParsedEvseData => {
     };
 };
 
+const parse_tariff_item = (tariff_item: TariffItem): ParsedTariffItem => {
+    const { Text: text, Currency: currency, Prices: prices, From: from, To: to, DaysOfWeek: days_of_week } = tariff_item;
+    const res: ParsedTariffItem = {
+        text,
+        currency,
+        days_of_week,
+        prices: prices.map((v) => {
+            const { Type: type, Price: price, Vat: vat } = v;
+            return {
+                type,
+                price,
+                vat,
+            };
+        }),
+        from: Timestamp.fromDate(new Date(from)),
+        to: Timestamp.fromDate(new Date(to)),
+    };
+    return res;
+};
+
+const parse_tariff_details = (tariff_details: TariffDetails) => {
+    const {
+        PricePerKwh: price_per_kwh,
+        ConnectionFee: connection_fee,
+        ParkingFee: parking_fee,
+        TariffItems: tariff_items,
+        Currency: currency,
+    } = tariff_details;
+    const res: ParsedTariffDetails = {
+        price_per_kwh,
+        connection_fee,
+        parking_fee,
+        currency,
+        tariff_items: tariff_items.map(parse_tariff_item),
+    };
+    return res;
+};
+
 export const parse_ocpi_connectors = (connector: OcpiConnector | Connector): ParsedConnectorData => {
     const {
         Id: connector_id,
@@ -118,44 +156,6 @@ export const parse_ocpi_connectors = (connector: OcpiConnector | Connector): Par
     return res;
 };
 
-const parse_tariff_details = (tariff_details: TariffDetails) => {
-    const {
-        PricePerKwh: price_per_kwh,
-        ConnectionFee: connection_fee,
-        ParkingFee: parking_fee,
-        TariffItems: tariff_items,
-        Currency: currency,
-    } = tariff_details;
-    const res: ParsedTariffDetails = {
-        price_per_kwh,
-        connection_fee,
-        parking_fee,
-        currency,
-        tariff_items: tariff_items.map(parse_tariff_item),
-    };
-    return res;
-};
-
-const parse_tariff_item = (tariff_item: TariffItem): ParsedTariffItem => {
-    const { Text: text, Currency: currency, Prices: prices, From: from, To: to, DaysOfWeek: days_of_week } = tariff_item;
-    const res: ParsedTariffItem = {
-        text,
-        currency,
-        days_of_week,
-        prices: prices.map((v) => {
-            const { Type: type, Price: price, Vat: vat } = v;
-            return {
-                type,
-                price,
-                vat,
-            };
-        }),
-        from: Timestamp.fromDate(new Date(from)),
-        to: Timestamp.fromDate(new Date(to)),
-    };
-    return res;
-};
-
 export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
     const {
         OcpPartyId: party_id,
@@ -163,7 +163,6 @@ export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
         StartDateTime: start_date_time,
         EndDateTime: end_date_time,
         LastUpdated: last_updated,
-        SessionId: session_id,
         Currency: currency,
         TotalCost: total_cost,
         TotalCostWithVat: total_cost_with_vat,
@@ -172,10 +171,6 @@ export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
         TotalEnergy: total_energy,
         TotalTime: total_time,
         TotalParkingTime: total_parking_time,
-        Credit: credit,
-        CreditsBalance: credits_balance,
-        CreditsExpirationDate: credits_expiration_date,
-        HomeCharging: home_charging,
         AvgKwhPrice: avg_kwh_price,
         Duration: duration,
     } = cdr;
@@ -186,7 +181,6 @@ export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
         start_date_time: Timestamp.fromDate(new Date(start_date_time)),
         end_date_time: Timestamp.fromDate(new Date(end_date_time)),
         last_updated: Timestamp.fromDate(new Date(last_updated)),
-        session_id,
         currency,
         total_cost,
         total_cost_with_vat,
@@ -195,16 +189,9 @@ export const parse_cdr = (cdr: CdrItem): ParsedCdrItem => {
         total_energy,
         total_time,
         total_parking_time,
-        credit,
-        credits_balance: credits_balance ?? 0,
-        credits_expiration_date: null,
-        home_charging,
         avg_kwh_price,
         duration,
     };
-    if (credits_expiration_date) {
-        res.credits_expiration_date = Timestamp.fromDate(new Date(credits_expiration_date));
-    }
 
     return res;
 };

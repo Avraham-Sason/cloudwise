@@ -208,12 +208,12 @@ export interface CdrItem {
     Duration: string; // Format HH:mm:ss
 }
 export interface ParsedCdrItem {
-    id: string;
+    id?: string;
     party_id: string;
     start_date_time: Timestamp;
     end_date_time: Timestamp;
     last_updated: Timestamp;
-    session_id: string;
+    session_id?: string;
     currency: string;
     total_cost: number;
     total_cost_with_vat: number;
@@ -222,10 +222,6 @@ export interface ParsedCdrItem {
     total_energy: number;
     total_time: number;
     total_parking_time: number | null;
-    credit: boolean;
-    credits_balance: number;
-    credits_expiration_date: Timestamp | null;
-    home_charging: boolean;
     avg_kwh_price: number;
     duration: string; // Format HH:mm:ss
     car_number?: string;

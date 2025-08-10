@@ -55,10 +55,14 @@ export const task__collect_cloudwise_cdrs = async () => {
     if (cached_sessions.length) {
         const batch = db.batch();
         cached_sessions.forEach((session) => {
-            const cdr = parsed_cdrs.find((cdr) => cdr.session_id === session.id);
+            const session_id = session.id;
+            delete session.id;
+            const cdr = parsed_cdrs.find((cdr) => cdr.session_id === session_id);
             if (cdr) {
-                batch.set(db.collection("cloudwise-sessions").doc(session.id), { ...session, cdr_id: cdr.id });
-                batch.set(db.collection("cloudwise-cdrs").doc(cdr.id), { ...cdr, car_number: session.car_number, timestamp: session.timestamp });
+                const cdr_id = cdr.id;
+                delete cdr.id;
+                batch.set(db.collection("cloudwise-sessions").doc(session_id!), { ...session, cdr_id: cdr_id });
+                batch.set(db.collection("cloudwise-cdrs").doc(cdr_id!), { ...cdr, car_number: session.car_number, timestamp: session.timestamp });
             }
         });
         await batch.commit();

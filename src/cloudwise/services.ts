@@ -1,7 +1,7 @@
 import { Service } from "akeyless-server-commons/types";
 import { get_location_details } from "./api/helpers";
 import { json_failed, json_ok } from "akeyless-server-commons/helpers";
-import { parse_eves, parse_location } from "./helpers";
+import { get_cdrs as get_cdrs_helper, parse_eves, parse_location } from "./helpers";
 import { cache_manager } from "akeyless-server-commons/managers";
 import { ParsedOcpiLocationData } from "./types";
 import { stop_session as stop_session_helper } from "./sessions/helpers";
@@ -27,6 +27,16 @@ export const stop_session: Service = async (req, res) => {
         const { session_id } = req.body;
         await stop_session_helper(session_id);
         res.json(json_ok({ message: "Session stopped" }));
+    } catch (error) {
+        res.json(json_failed(error));
+    }
+};
+
+export const get_cdrs: Service = async (req, res) => {
+    try {
+        const { car_number, limit, offset } = req.body;
+        const cdrs = get_cdrs_helper(car_number, { limit, offset });
+        res.json(json_ok({ cdrs }));
     } catch (error) {
         res.json(json_failed(error));
     }

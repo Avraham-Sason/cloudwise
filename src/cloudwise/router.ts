@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { get_location_status, stop_session } from "./services";
+import { get_cdrs, get_location_status, stop_session } from "./services";
 import { mandatory, nx_user_login } from "akeyless-server-commons/middlewares";
 import package_json from "../../package.json";
 
@@ -16,5 +16,7 @@ router.get("/v", (req, res) => {
 router.get("/locations/status/:id", nx_user_login, get_location_status);
 
 router.post("/sessions/stop", nx_user_login, mandatory({ body: [{ key: "session_id", type: "string", length: 3 }] }), stop_session);
+
+router.post("/cdrs", nx_user_login, mandatory({ body: [{ key: "car_number", type: "string", length: 3 }] }), get_cdrs);
 
 export default router;

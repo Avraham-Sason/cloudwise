@@ -1,11 +1,11 @@
 import { cache_manager, logger } from "akeyless-server-commons/managers";
 import { EvseStatus, ParsedConnectorData, ParsedOcpiLocationData } from "../types";
 import { Timestamp } from "firebase-admin/firestore";
-import { get_session_status, get_config, get_location_details, send_command } from "../api/helpers";
+import { get_session_status, get_config, get_location_details, session_command } from "../api/helpers";
 import moment from "moment";
 import { parse_cdr, parse_eves, parse_location } from "../helpers";
 import { ChargingState, ClosestUpdatedLocationResult, GetDistanceMetersOptions, GetLocationsByGeoAndStatusOptions, ChargingSession } from "./types";
-import { SendCommandOptions } from "../api/types";
+import { SessionCommandSettings } from "../api/types";
 import { set_document, sleep } from "akeyless-server-commons/helpers";
 
 /// ------------------ get locations by geo and status ------------------
@@ -98,7 +98,7 @@ const get_closest_updated_location = (
     return closestResult;
 };
 
-const get_start_session_command_options = async (charging_state_object: ChargingState): Promise<SendCommandOptions> => {
+const get_start_session_settings = async (charging_state_object: ChargingState): Promise<SessionCommandSettings> => {
     const { lat, lng, timestamp, car_number } = charging_state_object;
     await sleep(3000);
     let data: ParsedOcpiLocationData[] = [];
@@ -129,7 +129,7 @@ const get_start_session_command_options = async (charging_state_object: Charging
     } = get_closest_updated_location(data, timestamp, "BLOCKED");
 
     const { asset_id, ble_id, device_id } = get_config();
-    const command_options: SendCommandOptions = {
+    const command_options: SessionCommandSettings = {
         asset_id,
         ble_id,
         device_id,
@@ -146,21 +146,21 @@ const get_start_session_command_options = async (charging_state_object: Charging
 // TODO: remove interval after testing
 export const start_session = async (charging_state_object: ChargingState) => {
     const { car_number } = charging_state_object;
-    logger.log(`🟡 Starting session for car: "${car_number}" ...`);
+    logger.log(`Starting session for car: "${car_number}" ...`);
     try {
-        const command_options = await get_start_session_command_options(charging_state_object);
-        const start_session_response = await send_command(command_options);
+        const command_settings = await get_start_session_settings(charging_state_object);
+        const start_session_response = await session_command(command_settings);
         const { CommandId: session_id } = start_session_response;
         logger.log(`🟢 Session "${session_id}" started for car: "${car_number}"`);
         if (!session_id) {
             throw new Error("Session id not found in start session response");
         }
-        delete command_options.command;
+        delete command_settings.command;
+        delete command_settings.party_id;
         const session: ChargingSession = {
-            ...command_options,
+            ...command_settings,
             car_number,
             status: "started",
-            id: session_id,
             start_timestamp: Timestamp.now(),
             timestamp: Timestamp.now(),
         };
@@ -172,12 +172,13 @@ export const start_session = async (charging_state_object: ChargingState) => {
             timestamp: Timestamp.now(),
         });
 
-        // TODO: remove interval after testing
+        ///  interval for test during session
         // setInterval(async () => {
         //     const { asset_id, ble_id, device_id } = get_config();
         //     const res = await get_session_status({ asset_id, ble_id, session_id, device_id });
         //     console.log("get_session_status", res);
         // }, 5 * 1000);
+        
     } catch (error) {
         logger.error("🔴 Error in send_command_helper", error);
         await set_document("cloudwise-charging-state", car_number, { ...charging_state_object, status: "error", timestamp: Timestamp.now() });
@@ -186,14 +187,14 @@ export const start_session = async (charging_state_object: ChargingState) => {
 
 /// ------------------ end session ------------------
 export const stop_session = async (session_id: string) => {
-    logger.log(`🟡 Stopping session: "${session_id}" ...`);
+    logger.log(`Stopping session: "${session_id}" ...`);
     try {
         const sessions: ChargingSession[] = cache_manager.getArrayData("cloudwise-sessions");
         const session = sessions.find((session) => session.id === session_id);
         if (!session) {
             throw new Error("Session not found");
         }
-        const config: SendCommandOptions & Partial<ChargingSession> = {
+        const config: SessionCommandSettings & Partial<ChargingSession> = {
             ...session,
             command: "STOP_SESSION",
             session_id: session.id,
@@ -202,7 +203,7 @@ export const stop_session = async (session_id: string) => {
         delete config.status;
         delete config.car_number;
         delete config.id;
-        await send_command(config);
+        await session_command(config);
         logger.log(`🔵 Session "${session_id}" stopped`);
 
         /// update session status
@@ -230,9 +231,12 @@ export const stop_session = async (session_id: string) => {
                 const update: any = { cost, count, kwh, charging_time_in_seconds, timestamp: Timestamp.now() };
                 if (cdr) {
                     const parsed_cdr = parse_cdr(cdr);
-                    update.cdr_id = parsed_cdr.id;
-                    await set_document("cloudwise-cdrs", parsed_cdr.id, {
+                    const cdr_id = parsed_cdr.id;
+                    delete parsed_cdr.id;
+                    update.cdr_id = cdr_id;
+                    await set_document("cloudwise-cdrs", cdr_id!, {
                         ...parsed_cdr,
+                        session_id,
                         car_number: session.car_number,
                         timestamp: Timestamp.now(),
                     });
@@ -255,10 +259,16 @@ export const handle_active_session = async (session_id: string) => {
             if (CommandStatus.includes("ACTIVE")) {
                 timer = setTimeout(run, 30 * 1000);
             } else {
-                await stop_session(session_id);
                 if (timer) {
                     clearTimeout(timer);
                 }
+                setTimeout(async () => {
+                    const sessions = cache_manager.getArrayData("cloudwise-sessions");
+                    const session = sessions.find((session) => session.id === session_id);
+                    if (session && session.status !== "completed") {
+                        await stop_session(session_id);
+                    }
+                }, 10 * 1000);
             }
         } catch (error) {
             logger.error("🔴 Error in handle_active_session", error);
