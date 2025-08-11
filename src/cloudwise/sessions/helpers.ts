@@ -178,7 +178,6 @@ export const start_session = async (charging_state_object: ChargingState) => {
         //     const res = await get_session_status({ asset_id, ble_id, session_id, device_id });
         //     console.log("get_session_status", res);
         // }, 5 * 1000);
-        
     } catch (error) {
         logger.error("🔴 Error in send_command_helper", error);
         await set_document("cloudwise-charging-state", car_number, { ...charging_state_object, status: "error", timestamp: Timestamp.now() });
@@ -288,7 +287,10 @@ export const handle_active_session = async (session_id: string) => {
 
 /// ------------------ handle charging state add and edit ------------------
 const handle_status_change = async (charging_state_object: ChargingState) => {
-    const { status } = charging_state_object;
+    const { status, car_number } = charging_state_object;
+    if (!["1234567890","20326304"].includes(car_number)) {
+        return;
+    }
     switch (status) {
         case "plugin":
             await start_session(charging_state_object);
