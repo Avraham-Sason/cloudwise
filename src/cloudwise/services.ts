@@ -4,7 +4,7 @@ import { json_failed, json_ok } from "akeyless-server-commons/helpers";
 import { get_cdrs as get_cdrs_helper, parse_eves, parse_location } from "./helpers";
 import { cache_manager, logger } from "akeyless-server-commons/managers";
 import { ParsedOcpiLocationData } from "./types";
-import { stop_session as stop_session_helper } from "./sessions/helpers";
+import { get_distance_meters, stop_session as stop_session_helper } from "./sessions/helpers";
 
 export const get_location_status: Service = async (req, res) => {
     const { id } = req.params;
@@ -42,5 +42,33 @@ export const get_cdrs: Service = async (req, res) => {
     } catch (error) {
         res.json(json_failed(error));
         logger.error(`Error in get_cdrs, car number: ${car_number}`, error);
+    }
+};
+interface GetLocationsOptions {
+    limit?: number;
+    offset?: number;
+    radius?: number;
+    lat?: number;
+    lng?: number;
+    operator_name?: string;
+}
+export const get_locations: Service = async (req, res) => {
+    const { limit = 9999, offset = 0, radius = 1000 * 10, lat, lng, operator_name } = req.body as GetLocationsOptions;
+    try {
+        let locations: ParsedOcpiLocationData[] = cache_manager.getArrayData("cloudwise-locations");
+        if (operator_name) {
+            locations = locations.filter((location) => location.company_name.toLowerCase() === operator_name.toLowerCase());
+        }
+        if (lat && lng) {
+            locations = locations.filter((location) => {
+                const distance = get_distance_meters({ lat1: lat, lng1: lng, lat2: location.lat, lng2: location.lng });
+                return distance <= radius;
+            });
+        }
+        locations = locations.slice(offset, offset + limit);
+        res.json(json_ok({ locations }));
+    } catch (error) {
+        logger.error(`Error in get_locations`, error);
+        res.json(json_failed(error));
     }
 };

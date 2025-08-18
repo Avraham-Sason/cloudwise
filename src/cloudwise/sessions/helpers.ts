@@ -9,7 +9,7 @@ import { SessionCommandSettings } from "../api/types";
 import { set_document, sleep } from "akeyless-server-commons/helpers";
 
 /// ------------------ get locations by geo and status ------------------
-const get_distance_meters = ({ lat1, lat2, lng1, lng2 }: GetDistanceMetersOptions): number => {
+export const get_distance_meters = ({ lat1, lat2, lng1, lng2 }: GetDistanceMetersOptions): number => {
     const R = 6371000;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLng = ((lng2 - lng1) * Math.PI) / 180;
@@ -288,7 +288,7 @@ export const handle_active_session = async (session_id: string) => {
 /// ------------------ handle charging state add and edit ------------------
 const handle_status_change = async (charging_state_object: ChargingState) => {
     const { status, car_number } = charging_state_object;
-    if (!["1234567890","20326304"].includes(car_number)) {
+    if (!["1234567890", "20326304", "86913103"].includes(car_number)) {
         return;
     }
     switch (status) {
